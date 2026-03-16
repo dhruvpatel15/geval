@@ -1,12 +1,12 @@
 # Publishing a release (so users can install the binary)
 
-The [Installation](installation.md) and main [README](../../README.md) tell users to download binaries from [GitHub Releases](https://github.com/geval-labs/geval/releases). For that to work, you need to **publish a release** with the built binaries attached.
+The [Installation](installation.md) and main [README](../../README.md) tell users to download binaries from [GitHub Releases](https://github.com/geval-labs/geval/releases). For that to work, the release must have the **built binaries attached**. Those are only attached when the **Release Geval binary** workflow runs — and it runs **only when you push a tag** (e.g. `v0.1.2`). If you create a release from the GitHub UI without pushing a tag, the workflow never runs and the release will have no binaries (download links will fail or return HTML).
 
 ## One-time setup
 
-Nothing special. The repo already has a workflow (`.github/workflows/release-geval.yml`) that builds the Rust binary on Linux, macOS (Intel + Apple Silicon), and Windows, and uploads the files to the release.
+Nothing special. The repo has a workflow (`.github/workflows/release-geval.yml`) that builds the Rust binary on Linux, macOS (Intel + Apple Silicon), and Windows, and attaches them to the release. It triggers **on push of a tag** matching `v*`.
 
-## How to release
+## How to release (so binaries are included)
 
 1. **Bump version** (optional but good practice): in `geval/Cargo.toml`, set `version = "0.1.0"` (or whatever you want).
 
