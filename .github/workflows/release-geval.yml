@@ -8,6 +8,10 @@ on:
     tags:
       - 'v*'
 
+env:
+  # Use Node.js 24 for actions (checkout, upload-artifact, etc.) to avoid deprecation warnings.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: write
 

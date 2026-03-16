@@ -24,7 +24,13 @@ sudo mv geval /usr/local/bin/geval
 mv geval ~/bin/geval
 ```
 
-**3. Verify:**
+**3. Try it** (no files needed):
+
+```bash
+geval demo
+```
+
+**4. Verify / help:**
 
 ```bash
 geval --help

@@ -18,32 +18,39 @@
 
 ## Install & try (under a minute)
 
-**1. Clone the repo and download the binary** (pick your OS for the `curl` line):
+**1. Download the binary** for your OS (no repo clone needed):
 
 ```bash
-git clone https://github.com/geval-labs/geval.git && cd geval
-
 # Linux
 curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-linux-x86_64 -o geval && chmod +x geval
 
 # macOS (Apple Silicon)
 curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-macos-aarch64 -o geval && chmod +x geval
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri https://github.com/geval-labs/geval/releases/latest/download/geval-windows-x86_64.exe -OutFile geval.exe
 ```
 
-**2. Run it** with the included example:
+**2. Run the built-in demo** (no files needed):
 
 ```bash
-./geval check --signals geval/examples/signals.json --policy geval/examples/policy.yaml --env prod
+./geval demo
 ```
 
-You’ll get **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. Same binary works in GitHub Actions or any CI — no npm or pip. [→ Use in CI](geval/docs/github-actions.md)
+You’ll see a decision report and get **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. Same binary works in CI — no npm or pip. [→ Use in CI](geval/docs/github-actions.md)
 
-**If the download gives an error** (e.g. `Not: command not found` when you run `./geval`), the release may not have binaries attached yet. **Build from source** instead (requires [Rust](https://rustup.rs/)):
+**Using your own files** (e.g. after cloning the repo for examples):
+
+```bash
+./geval check --signals path/to/signals.json --policy path/to/policy.yaml --env prod
+```
+
+**If the download fails** (e.g. no binaries for your OS yet), **build from source** (requires [Rust](https://rustup.rs/)):
 
 ```bash
 git clone https://github.com/geval-labs/geval.git && cd geval
 cargo build --release --manifest-path geval/Cargo.toml
-./geval/target/release/geval check --signals geval/examples/signals.json --policy geval/examples/policy.yaml --env prod
+./geval/target/release/geval demo
 ```
 
 ---
@@ -89,7 +96,8 @@ Every run is recorded (which policy and signals were used, which rule fired, whe
 
 | Command | What it does |
 |--------|----------------|
-| `geval check` | Run signals + policy → PASS / REQUIRE_APPROVAL / BLOCK (exit 0 / 1 / 2) |
+| `geval demo` | Run built-in example (no files). **Use this first after downloading.** |
+| `geval check` | Run your signals + policy → PASS / REQUIRE_APPROVAL / BLOCK (exit 0 / 1 / 2) |
 | `geval explain` | Show why (which rule, which signals) |
 | `geval approve` / `geval reject` | Record human approval or rejection |
 | `geval validate-policy` | Validate policy file |

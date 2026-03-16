@@ -1,4 +1,4 @@
-//! CLI commands: check, approve, reject, explain, validate-policy.
+//! CLI commands: check, approve, reject, explain, validate-policy, demo.
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -6,12 +6,13 @@ use std::path::PathBuf;
 
 use crate::approval::write_approval;
 use crate::artifact::write_decision_artifact;
-use crate::evaluator::{evaluate, DecisionOutcome};
+use crate::cli::demo_ui::print_demo_report;
+use crate::evaluator::{evaluate, evaluate_with_trace, DecisionOutcome};
 use crate::explanation::explain_decision;
 use crate::hashing::{hash_policy, hash_signals};
-use crate::policy::parse_policy;
+use crate::policy::{parse_policy, parse_policy_str};
 use crate::signal_graph::SignalGraph;
-use crate::signals::load_signals;
+use crate::signals::{load_signals, load_signals_from_reader};
 
 /// Geval - decision orchestration engine for AI systems.
 #[derive(Parser)]
@@ -26,6 +27,8 @@ pub struct Commands {
 pub enum Sub {
     /// Evaluate signals against policy; exit 0=PASS, 1=REQUIRE_APPROVAL, 2=BLOCK.
     Check(CheckOpts),
+    /// Run a built-in example (no files needed). Use this to try Geval after downloading.
+    Demo(DemoOpts),
     /// Record human approval (for REQUIRE_APPROVAL flow).
     Approve(ApproveOpts),
     /// Record human rejection.
@@ -35,6 +38,63 @@ pub enum Sub {
     /// Validate policy file syntax.
     ValidatePolicy(ValidatePolicyOpts),
 }
+
+/// Built-in demo signals and policy (same as geval/examples/).
+const DEMO_SIGNALS_JSON: &str = r#"{
+  "signals": [
+    {
+      "system": "support_agent",
+      "component": "retrieval",
+      "metric": "context_relevance",
+      "value": 0.84
+    },
+    {
+      "system": "support_agent",
+      "component": "generator",
+      "metric": "hallucination_rate",
+      "value": 0.06
+    },
+    {
+      "type": "ab_test",
+      "metric": "engagement_drop",
+      "value": 0.03
+    }
+  ]
+}"#;
+
+const DEMO_POLICY_YAML: &str = r#"policy:
+  environment: prod
+  rules:
+    - priority: 1
+      name: business_block
+      when:
+        metric: engagement_drop
+        operator: ">"
+        threshold: 0
+      then:
+        action: block
+        reason: "Business engagement dropped"
+
+    - priority: 2
+      name: hallucination_guard
+      when:
+        component: generator
+        metric: hallucination_rate
+        operator: ">"
+        threshold: 0.05
+      then:
+        action: block
+
+    - priority: 3
+      name: retrieval_quality
+      when:
+        component: retrieval
+        metric: context_relevance
+        operator: "<"
+        threshold: 0.85
+      then:
+        action: require_approval
+"#;
 
 #[derive(clap::Args)]
 pub struct CheckOpts {
@@ -85,16 +145,49 @@ pub struct ValidatePolicyOpts {
     pub json: bool,
 }
 
+#[derive(clap::Args)]
+pub struct DemoOpts {
+    #[arg(long)]
+    pub json: bool,
+}
+
 impl Commands {
     pub fn run(self) -> Result<()> {
         match self.sub {
             Sub::Check(opts) => run_check(&opts),
+            Sub::Demo(opts) => run_demo(&opts),
             Sub::Approve(opts) => run_approve(&opts),
             Sub::Reject(opts) => run_reject(&opts),
             Sub::Explain(opts) => run_explain(&opts),
             Sub::ValidatePolicy(opts) => run_validate_policy(&opts),
         }
     }
+}
+
+fn run_demo(opts: &DemoOpts) -> Result<()> {
+    let policy = parse_policy_str(DEMO_POLICY_YAML).context("parse built-in policy")?;
+    let signals =
+        load_signals_from_reader(DEMO_SIGNALS_JSON.as_bytes()).context("parse built-in signals")?;
+    let graph = SignalGraph::build(&signals.signals);
+    let (decision, trace) = evaluate_with_trace(&policy, &graph);
+
+    if opts.json {
+        let out = serde_json::json!({
+            "decision": outcome_str(decision.outcome),
+            "matched_rule": decision.matched_rule,
+            "reason": decision.reason,
+        });
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        print_demo_report(&policy, &graph, &decision, &trace, Some("prod"));
+    }
+
+    let code = match decision.outcome {
+        DecisionOutcome::Pass => 0,
+        DecisionOutcome::RequireApproval => 1,
+        DecisionOutcome::Block => 2,
+    };
+    std::process::exit(code);
 }
 
 fn run_check(opts: &CheckOpts) -> Result<()> {
