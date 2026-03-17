@@ -184,6 +184,19 @@ mod tests {
         }
     }
 
+    /// Presence-only signal: metric but no numeric value. Used for "this thing happened" without a score.
+    fn sig_presence_only(metric: &str, component: Option<&str>) -> Signal {
+        Signal {
+            system: None,
+            agent: None,
+            component: component.map(String::from),
+            step: None,
+            metric: Some(metric.to_string()),
+            value: None,
+            r#type: None,
+        }
+    }
+
     #[test]
     fn test_no_match_returns_pass() {
         let policy = parse_policy_str(
@@ -242,5 +255,41 @@ rules:
         // Priority 1 matches first: hallucination_guard
         assert_eq!(d.outcome, DecisionOutcome::Block);
         assert_eq!(d.matched_rule.as_deref(), Some("hallucination"));
+    }
+
+    #[test]
+    fn test_presence_only_signal_matches_presence_rule() {
+        let policy = parse_policy_str(
+            r#"
+rules:
+  - priority: 1
+    name: require_human_review
+    when:
+      metric: human_reviewed
+      operator: presence
+    then:
+      action: require_approval
+      reason: "Human must review"
+  - priority: 2
+    name: block_low_score
+    when:
+      metric: quality_score
+      operator: "<"
+      threshold: 0.5
+    then:
+      action: block
+"#,
+        )
+        .unwrap();
+        // Mix: one presence-only (no value), one numeric.
+        let signals = SignalSet::new(vec![
+            sig_presence_only("human_reviewed", None),
+            sig(None, "quality_score", 0.8),
+        ]);
+        let graph = SignalGraph::build(&signals.signals);
+        let d = evaluate(&policy, &graph);
+        // First rule matches: human_reviewed is present (even without a score).
+        assert_eq!(d.outcome, DecisionOutcome::RequireApproval);
+        assert_eq!(d.matched_rule.as_deref(), Some("require_human_review"));
     }
 }

@@ -1,4 +1,17 @@
 //! Load signals from JSON. Signals are declared facts; Geval does not validate or compute them.
+//!
+//! **Non-uniform signals:** Geval accepts a mix of shapes in one file. Each signal can have:
+//! - **Optional context:** system, agent, component, step, metric, type.
+//! - **Optional value:** missing, a number, or a string.
+//!
+//! How rules use them:
+//! - **No value (presence-only):** A rule with operator `presence` matches if any signal has that
+//!   metric (and optional component). So "human_reviewed" with no score still counts for rules
+//!   like "when human_reviewed is present → require_approval".
+//! - **Numeric value:** Rules with `>`, `<`, `>=`, `<=`, `==` use the first numeric value for that
+//!   metric (and optional component). Other signals for the same metric are ignored for that rule.
+//! - **String value:** Stored and available for display; rule support for "metric equals string"
+//!   can be added so categorical signals (e.g. "review": "approved") drive decisions.
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -6,8 +19,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-/// A single signal - evidence used to evaluate an AI system change.
-/// All context fields are optional to support simple and complex systems.
+/// A single signal — one piece of evidence. All fields optional so you can mix scores, presence-only, and labels.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Signal {
     #[serde(default)]

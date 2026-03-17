@@ -1,4 +1,4 @@
-//! CLI commands: check, approve, reject, explain, validate-policy, demo.
+//! CLI commands: check, init, demo, approve, reject, explain, validate-policy.
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use crate::approval::write_approval;
 use crate::artifact::write_decision_artifact;
-use crate::cli::demo_ui::print_demo_report;
+use crate::cli::{demo_ui::print_demo_report, init::run_init as do_init};
 use crate::evaluator::{evaluate, evaluate_with_trace, DecisionOutcome};
 use crate::explanation::explain_decision;
 use crate::hashing::{hash_policy, hash_signals};
@@ -18,7 +18,7 @@ use crate::signals::{load_signals, load_signals_from_reader};
 #[derive(Parser)]
 #[command(name = "geval")]
 #[command(version)]
-#[command(about = "Deterministic decision engine for AI system changes", long_about = None)]
+#[command(about = "Decision orchestration and reconciliation for AI system changes", long_about = None)]
 pub struct Commands {
     #[command(subcommand)]
     pub sub: Sub,
@@ -28,6 +28,8 @@ pub struct Commands {
 pub enum Sub {
     /// Evaluate signals against policy; exit 0=PASS, 1=REQUIRE_APPROVAL, 2=BLOCK.
     Check(CheckOpts),
+    /// Create a template folder (.geval by default) with sample signals and policy. Edit and run.
+    Init(InitOpts),
     /// Run a built-in example (no files needed). Use this to try Geval after downloading.
     Demo(DemoOpts),
     /// Record human approval (for REQUIRE_APPROVAL flow).
@@ -147,6 +149,16 @@ pub struct ValidatePolicyOpts {
 }
 
 #[derive(clap::Args)]
+pub struct InitOpts {
+    /// Directory to create (default: .geval). All template files go here; your project stays unchanged.
+    #[arg(default_value = ".geval")]
+    pub directory: PathBuf,
+    /// Overwrite existing signals.json and policy.yaml if they already exist.
+    #[arg(long)]
+    pub force: bool,
+}
+
+#[derive(clap::Args)]
 pub struct DemoOpts {
     #[arg(long)]
     pub json: bool,
@@ -156,6 +168,7 @@ impl Commands {
     pub fn run(self) -> Result<()> {
         match self.sub {
             Sub::Check(opts) => run_check(&opts),
+            Sub::Init(opts) => run_init(&opts),
             Sub::Demo(opts) => run_demo(&opts),
             Sub::Approve(opts) => run_approve(&opts),
             Sub::Reject(opts) => run_reject(&opts),
@@ -163,6 +176,20 @@ impl Commands {
             Sub::ValidatePolicy(opts) => run_validate_policy(&opts),
         }
     }
+}
+
+fn run_init(opts: &InitOpts) -> Result<()> {
+    do_init(&opts.directory, opts.force).context("init")?;
+    println!(
+        "Created {} with signals.json, policy.yaml, and README.md.",
+        opts.directory.display()
+    );
+    println!(
+        "Edit the files, then run: geval check --signals {}/signals.json --policy {}/policy.yaml",
+        opts.directory.display(),
+        opts.directory.display()
+    );
+    Ok(())
 }
 
 fn run_demo(opts: &DemoOpts) -> Result<()> {

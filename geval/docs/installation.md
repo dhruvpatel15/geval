@@ -24,10 +24,11 @@ sudo mv geval /usr/local/bin/geval
 mv geval ~/bin/geval
 ```
 
-**3. Try it** (no files needed):
+**3. Try it** (no files needed) or **set up your own rules**:
 
 ```bash
-geval demo
+geval demo              # built-in example
+geval init              # create .geval/ with template data and rules (edit and run)
 ```
 
 **4. Verify / help:**

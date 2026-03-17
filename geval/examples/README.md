@@ -1,6 +1,6 @@
 # Geval Examples
 
-This directory contains example signals and policy for the Geval decision engine.
+This directory contains example signals and policy for Geval (decision orchestration and reconciliation).
 
 ## Files
 

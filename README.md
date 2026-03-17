@@ -5,11 +5,11 @@
 # Geval
 
 <p align="center">
-  <strong>One clear decision for every AI change.</strong>
+  <strong>Decision orchestration and reconciliation for AI changes.</strong>
 </p>
 
 <p align="center">
-  Your numbers in. Your rules. One answer: ship, get approval, or block.
+  You bring <em>all kinds of signals</em> and <em>your rules</em>. Geval orchestrates and reconciles them into one outcome. No brain — just your rules applied, every time.
 </p>
 
 <p align="center">
@@ -44,9 +44,31 @@ Invoke-WebRequest -Uri https://github.com/geval-labs/geval/releases/latest/downl
 .\geval.exe demo      # Windows (same folder as geval.exe)
 ```
 
-You get a report and one of three answers: **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. [Use in CI →](geval/docs/github-actions.md)
+You get a report and one outcome: **PASS**, **REQUIRE_APPROVAL**, or **BLOCK** — produced by applying the demo rules to the demo signals. [Use in CI →](geval/docs/github-actions.md)
 
 **No binary for your OS?** [Build from source](geval/docs/installation.md#build-from-source).
+
+### Start from a template (like create-react-app)
+
+Inside your project (your codebase is not changed except for one new folder):
+
+```bash
+geval init
+```
+
+This creates a **.geval** folder with:
+
+- **signals.json** — sample signals (scores, presence-only). Edit and add yours.
+- **policy.yaml** — sample rules. Edit and add yours.
+- **README.md** — how to run from here.
+
+Then run:
+
+```bash
+geval check --signals .geval/signals.json --policy .geval/policy.yaml
+```
+
+Use a different folder: `geval init my-rules`. Overwrite existing template files: `geval init --force`.
 
 ### Updating
 
@@ -54,13 +76,15 @@ Use the same download commands. Replace your old file with the new one. Check ve
 
 ---
 
-## Use Geval with your own rules and data
+## Use Geval with your own signals and rules
 
-You need **two files**: one with **your numbers**, one with **your rules**. Geval reads both and gives one answer.
+You need **two files**: **your signals** (any kind — scores, flags, presence-only) and **your rules**. Geval doesn't decide; it **orchestrates** and **reconciles** your rules against your signals and returns one outcome. Use `geval init` for a ready-made template, or create the files yourself below.
 
-### Step 1: Your numbers (data file)
+**All kinds of signals:** Not every signal needs a score. You can mix: entries with a numeric `value`, and entries with no value (presence-only). Use a rule with `operator: presence` to match “this metric exists.” [Details →](geval/docs/signals-and-rules.md)
 
-A list of what you measured. Each item has a name and a value.
+### Step 1: Your signals (data file)
+
+A list of evidence: what you measured, observed, or flagged. Each item has a **metric** (name). **Value** is optional — use it for scores; omit it for “this happened” (presence-only).
 
 Example — save as `mydata.json`:
 
@@ -77,9 +101,9 @@ You can add labels like `component` or `system` if you need them. [Full example 
 
 ### Step 2: Your rules (rules file)
 
-A list of rules in order. Geval checks the first rule, then the next, and stops at the first match.
+A list of rules in order. Geval applies the first rule, then the next, and stops at the first match. It doesn't interpret — it just evaluates your conditions against your signals.
 
-Each rule says: **When** [something about your numbers], **then** [allow / need approval / block].
+Each rule says: **When** [something about your signals], **then** [allow / need approval / block].
 
 Example — save as `myrules.yaml`:
 
@@ -106,7 +130,7 @@ policy:
         action: pass
 ```
 
-**Operators:** `>` greater than, `<` less than, `>=` at least, `<=` at most, `==` equal.
+**Operators:** `>` greater than, `<` less than, `>=` at least, `<=` at most, `==` equal, `presence` = metric exists (no threshold; use for signals without a score).
 
 **Actions:** `pass` = allow. `block` = don’t allow. `require_approval` = a person must say yes first.
 
@@ -122,13 +146,13 @@ Point Geval at your two files:
 
 (Windows: `.\geval.exe check --signals mydata.json --policy myrules.yaml`)
 
-### Step 4: Read the answer
+### Step 4: Read the outcome
 
-- **PASS** — No rule said no. You’re good to go.
+- **PASS** — No rule matched a block or require-approval. You’re good to go.
 - **REQUIRE_APPROVAL** — A rule says someone must approve before you go.
 - **BLOCK** — A rule says stop. Fix the issue before going.
 
-To see **why** Geval chose that answer:
+To see **which rule** produced that outcome (and which signals it used):
 
 ```bash
 ./geval explain --signals mydata.json --policy myrules.yaml
@@ -144,7 +168,7 @@ To check that your rules file is valid (no run needed):
 
 <p align="center">
   <a href="#the-problem">The problem</a> •
-  <a href="#what-geval-does">What Geval does</a> •
+  <a href="#what-geval-is">What Geval is</a> •
   <a href="#cli">Commands</a> •
   <a href="#documentation">Docs</a>
 </p>
@@ -153,32 +177,32 @@ To check that your rules file is valid (no run needed):
 
 ## The problem
 
-You have tests and numbers: accuracy, engagement, safety, reviews. You change a model or a prompt. Then what?
+You have many signals: scores, A/B results, human reviews, flags. You change a model or a prompt. Then what?
 
-- One report says “better.”
+- One signal says “better.”
 - Another says “worse.”
 - Someone asks: “Do we ship?”
 
-Today that decision is in chat or a meeting. Hard to repeat. Hard to audit. Geval puts **your rules in one place** and gives **one answer** every time: ship, get approval first, or block.
+Today that call happens in chat or a meeting. Hard to repeat. Hard to audit. You don't need a system that "decides" for you — you need **orchestration and reconciliation**: one place to define rules, one place to feed all your signals (not just numbers), and one deterministic outcome every time.
 
 ---
 
-## What Geval does
+## What Geval is
 
-You give Geval:
+**Geval is a decision orchestration and reconciliation engine.** It does not make decisions. It has no brain. You provide:
 
-1. **Your numbers** (one file) — e.g. scores, metrics, A/B results.
+1. **Your signals** (one file) — any kind: scores, presence-only, flags, labels. Non-uniform is fine.
 2. **Your rules** (one file) — e.g. “If engagement drops, block. If accuracy is below X, need approval.”
 
-Geval applies the rules in order and returns:
+Geval **orchestrates** the run and **reconciles** your signals against your rules in order. Same inputs + same rules = same outcome. It returns:
 
-| Result | Meaning |
+| Outcome | Meaning |
 |--------|--------|
-| **PASS** | No rule said no. Good to go. |
-| **REQUIRE_APPROVAL** | A rule says a person must approve first. |
-| **BLOCK** | A rule says don’t ship. Fix first. |
+| **PASS** | No rule matched a block or require-approval. Good to go. |
+| **REQUIRE_APPROVAL** | A rule matched; it says a person must approve first. |
+| **BLOCK** | A rule matched; it says don’t ship. Fix first. |
 
-Each run is stored: which rules, which numbers, when. So you can always answer: “Why did we ship?” and “Who approved?”
+Each run is recorded: which rules, which signals, when. So you can always answer: “Why did we ship?” and “Who approved?” — without any black box.
 
 ---
 
@@ -186,9 +210,10 @@ Each run is stored: which rules, which numbers, when. So you can always answer: 
 
 | Command | What it does |
 |--------|----------------|
+| `geval init` | Create a template folder (.geval) with sample data and rules. Edit and run. |
 | `geval demo` | Run the built-in example. Try this first. |
-| `geval check` | Run your data + rules → PASS / REQUIRE_APPROVAL / BLOCK |
-| `geval explain` | Show why you got that answer |
+| `geval check` | Orchestrate: run your signals + rules → one outcome (PASS / REQUIRE_APPROVAL / BLOCK) |
+| `geval explain` | Show which rule produced the outcome and which signals were used |
 | `geval approve` / `geval reject` | Record a person’s approval or rejection |
 | `geval validate-policy` | Check your rules file is valid |
 
@@ -198,6 +223,7 @@ Each run is stored: which rules, which numbers, when. So you can always answer: 
 
 | Guide | Description |
 |-------|-------------|
+| [**Signals and rules**](geval/docs/signals-and-rules.md) | Non-uniform signals (scores, presence-only, mix); how rules use them |
 | [**GitHub Actions**](geval/docs/github-actions.md) | Use Geval in CI |
 | [**Examples**](geval/examples/README.md) | Sample data and rules files |
 | [**Installation**](geval/docs/installation.md) | Install, PATH, build from source |

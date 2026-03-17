@@ -1,4 +1,4 @@
-//! Geval CLI - deterministic decision engine for AI system changes.
+//! Geval CLI - decision orchestration and reconciliation for AI system changes.
 
 use anyhow::Result;
 use clap::Parser;
