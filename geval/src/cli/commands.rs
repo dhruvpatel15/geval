@@ -17,6 +17,7 @@ use crate::signals::{load_signals, load_signals_from_reader};
 /// Geval - decision orchestration engine for AI systems.
 #[derive(Parser)]
 #[command(name = "geval")]
+#[command(version)]
 #[command(about = "Deterministic decision engine for AI system changes", long_about = None)]
 pub struct Commands {
     #[command(subcommand)]

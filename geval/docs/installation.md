@@ -34,9 +34,21 @@ geval demo
 
 ```bash
 geval --help
+geval --version
 ```
 
-Done. Use the same binary in GitHub Actions or any CI — just download the artifact for the runner OS and run `geval check --signals ... --policy ...`. See [GitHub Actions](github-actions.md).
+Done. Use the same binary in GitHub Actions or any CI.
+
+---
+
+## Updating Geval
+
+When a new version is released, download the latest binary the same way you did the first time. Replace your existing `geval` (or `geval.exe`) with the new file.
+
+- **If the binary is in your PATH** (e.g. `/usr/local/bin/geval`): download to a temp directory, then `mv geval /usr/local/bin/geval` (or your PATH location). On Windows, download to the same folder as your current `geval.exe` so it overwrites it.
+- **If you run it from a project folder:** run the download command in that folder again; the new binary overwrites the old one.
+
+The release URLs use `/latest/download/`, so you always get the newest release. Check your version with `geval --version`. — just download the artifact for the runner OS and run `geval check --signals ... --policy ...`. See [GitHub Actions](github-actions.md).
 
 ---
 

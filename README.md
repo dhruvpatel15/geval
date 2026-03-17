@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  Evals tell you <em>what happened</em>. Geval tells you <em>whether you can ship.</em>
+  Your numbers in. Your rules. One answer: ship, get approval, or block.
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ## Try it in under a minute
 
-**1. Download the binary** for your OS (no repo clone needed):
+**1. Download** (pick your OS):
 
 ```bash
 # Linux
@@ -35,31 +35,117 @@ curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-mac
 Invoke-WebRequest -Uri https://github.com/geval-labs/geval/releases/latest/download/geval-windows-x86_64.exe -OutFile geval.exe
 ```
 
-> **Windows:** Run **PowerShell as Administrator** before downloading and running Geval. Right‑click PowerShell → *Run as administrator*, then run the download command and `.\geval.exe demo`. This avoids execution policy and path issues so the demo and CLI work correctly.
+> **Windows:** Open **PowerShell as Administrator** (right‑click → *Run as administrator*). Then run the download command and `.\geval.exe demo`.
 
-**2. Run the built-in demo** (no files needed):
+**2. Run the demo** (no files needed):
 
 ```bash
 ./geval demo          # Linux / macOS
-.\geval.exe demo      # Windows (in the folder where you saved geval.exe)
+.\geval.exe demo      # Windows (same folder as geval.exe)
 ```
 
-You’ll get a step-by-step decision report and an outcome: **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. Same binary works in CI — no npm, no pip. [Use in CI →](geval/docs/github-actions.md)
+You get a report and one of three answers: **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. [Use in CI →](geval/docs/github-actions.md)
 
-**Using your own files?**
+**No binary for your OS?** [Build from source](geval/docs/installation.md#build-from-source).
+
+### Updating
+
+Use the same download commands. Replace your old file with the new one. Check version: `geval --version`.
+
+---
+
+## Use Geval with your own rules and data
+
+You need **two files**: one with **your numbers**, one with **your rules**. Geval reads both and gives one answer.
+
+### Step 1: Your numbers (data file)
+
+A list of what you measured. Each item has a name and a value.
+
+Example — save as `mydata.json`:
+
+```json
+{
+  "signals": [
+    { "metric": "accuracy", "value": 0.94 },
+    { "metric": "engagement_drop", "value": 0.02 }
+  ]
+}
+```
+
+You can add labels like `component` or `system` if you need them. [Full example →](geval/examples/signals.json)
+
+### Step 2: Your rules (rules file)
+
+A list of rules in order. Geval checks the first rule, then the next, and stops at the first match.
+
+Each rule says: **When** [something about your numbers], **then** [allow / need approval / block].
+
+Example — save as `myrules.yaml`:
+
+```yaml
+policy:
+  rules:
+    - priority: 1
+      name: block_bad_engagement
+      when:
+        metric: engagement_drop
+        operator: ">"
+        threshold: 0
+      then:
+        action: block
+        reason: "Engagement dropped"
+
+    - priority: 2
+      name: allow_good_accuracy
+      when:
+        metric: accuracy
+        operator: ">="
+        threshold: 0.9
+      then:
+        action: pass
+```
+
+**Operators:** `>` greater than, `<` less than, `>=` at least, `<=` at most, `==` equal.
+
+**Actions:** `pass` = allow. `block` = don’t allow. `require_approval` = a person must say yes first.
+
+[Full example →](geval/examples/policy.yaml)
+
+### Step 3: Run Geval
+
+Point Geval at your two files:
 
 ```bash
-./geval check --signals path/to/signals.json --policy path/to/policy.yaml --env prod
+./geval check --signals mydata.json --policy myrules.yaml
 ```
 
-**Download failed or no binary for your OS?** [Build from source](geval/docs/installation.md#build-from-source) (requires [Rust](https://rustup.rs/)).
+(Windows: `.\geval.exe check --signals mydata.json --policy myrules.yaml`)
+
+### Step 4: Read the answer
+
+- **PASS** — No rule said no. You’re good to go.
+- **REQUIRE_APPROVAL** — A rule says someone must approve before you go.
+- **BLOCK** — A rule says stop. Fix the issue before going.
+
+To see **why** Geval chose that answer:
+
+```bash
+./geval explain --signals mydata.json --policy myrules.yaml
+```
+
+To check that your rules file is valid (no run needed):
+
+```bash
+./geval validate-policy myrules.yaml
+```
 
 ---
 
 <p align="center">
   <a href="#the-problem">The problem</a> •
   <a href="#what-geval-does">What Geval does</a> •
-  <a href="#cli">CLI</a> •
+  <a href="#cli">Commands</a> •
   <a href="#documentation">Docs</a>
 </p>
 
@@ -67,41 +153,44 @@ You’ll get a step-by-step decision report and an outcome: **PASS**, **REQUIRE_
 
 ## The problem
 
-Your team runs **evals** (accuracy, relevance, safety, hallucinations, latency) plus A/B tests, human review, and business metrics. When you change a model or a prompt, you get a flood of signals:
+You have tests and numbers: accuracy, engagement, safety, reviews. You change a model or a prompt. Then what?
 
-- **Evals:** “Accuracy improved.”
-- **A/B:** “Engagement dropped a bit.”
-- **Review:** “Edge case flagged.”
+- One report says “better.”
+- Another says “worse.”
+- Someone asks: “Do we ship?”
 
-So: **do you ship or not?** Today that call often happens in Slack or a meeting — inconsistent, hard to audit, and easy to forget. Geval gives you **one place to write the rules** and **one clear answer** every time: **ship**, **get approval first**, or **block**.
+Today that decision is in chat or a meeting. Hard to repeat. Hard to audit. Geval puts **your rules in one place** and gives **one answer** every time: ship, get approval first, or block.
 
 ---
 
 ## What Geval does
 
-**Geval is a decision engine for AI releases.** You feed it the outcomes of your evals and other signals (as simple data files). You define your policy in a single file: *“If engagement drops, block. If hallucination rate is above X, block. If retrieval quality is below Y, require human approval.”* Geval applies those rules in a fixed order and returns:
+You give Geval:
 
-| Outcome | Meaning |
+1. **Your numbers** (one file) — e.g. scores, metrics, A/B results.
+2. **Your rules** (one file) — e.g. “If engagement drops, block. If accuracy is below X, need approval.”
+
+Geval applies the rules in order and returns:
+
+| Result | Meaning |
 |--------|--------|
-| **PASS** | Good to ship. No rule blocked it. |
-| **REQUIRE_APPROVAL** | A rule says a human must approve before shipping. |
-| **BLOCK** | A rule says do not ship until the issue is fixed. |
+| **PASS** | No rule said no. Good to go. |
+| **REQUIRE_APPROVAL** | A rule says a person must approve first. |
+| **BLOCK** | A rule says don’t ship. Fix first. |
 
-Every run is recorded (which policy and signals were used, which rule fired, when). So product managers, engineers, and auditors can always answer: *“Why did we ship this?”* and *“Who approved it?”*
-
-**In short:** evals answer *“What happened?”* Geval answers *“Given what happened, are we allowed to ship?”*
+Each run is stored: which rules, which numbers, when. So you can always answer: “Why did we ship?” and “Who approved?”
 
 ---
 
-## CLI
+## Commands
 
 | Command | What it does |
 |--------|----------------|
-| `geval demo` | Run built-in example (no files). **Use this first after downloading.** |
-| `geval check` | Run your signals + policy → PASS / REQUIRE_APPROVAL / BLOCK (exit 0 / 1 / 2) |
-| `geval explain` | Show why (which rule, which signals) |
-| `geval approve` / `geval reject` | Record human approval or rejection |
-| `geval validate-policy` | Validate policy file |
+| `geval demo` | Run the built-in example. Try this first. |
+| `geval check` | Run your data + rules → PASS / REQUIRE_APPROVAL / BLOCK |
+| `geval explain` | Show why you got that answer |
+| `geval approve` / `geval reject` | Record a person’s approval or rejection |
+| `geval validate-policy` | Check your rules file is valid |
 
 ---
 
@@ -109,17 +198,17 @@ Every run is recorded (which policy and signals were used, which rule fired, whe
 
 | Guide | Description |
 |-------|-------------|
-| [**GitHub Actions**](geval/docs/github-actions.md) | Run Geval in CI (workflow YAML, exit codes) |
-| [**Examples**](geval/examples/README.md) | Sample `signals.json` and `policy.yaml` |
-| [**Installation**](geval/docs/installation.md) | PATH, CI, and build-from-source (for contributors) |
-| [**Developer workflow**](geval/docs/developer-workflow.md) | PR → check → approve/reject |
-| [**Auditing**](geval/docs/auditing.md) | Decision artifacts, hashes |
+| [**GitHub Actions**](geval/docs/github-actions.md) | Use Geval in CI |
+| [**Examples**](geval/examples/README.md) | Sample data and rules files |
+| [**Installation**](geval/docs/installation.md) | Install, PATH, build from source |
+| [**Developer workflow**](geval/docs/developer-workflow.md) | PRs, check, approve/reject |
+| [**Auditing**](geval/docs/auditing.md) | How decisions are recorded |
 
 ---
 
 ## Contributing
 
-We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md). To build from source, see [Installation → Build from source](geval/docs/installation.md#build-from-source).
+Contributions welcome. [CONTRIBUTING.md](CONTRIBUTING.md). Build from source: [Installation](geval/docs/installation.md#build-from-source).
 
 ---
 
