@@ -2,10 +2,14 @@
   <img src="https://geval.io/white_bg_greenlogo.svg" alt="Geval" width="180" />
 </p>
 
-<h1 align="center">Geval</h1>
+# Geval
 
 <p align="center">
   <strong>One clear decision for every AI change.</strong>
+</p>
+
+<p align="center">
+  Evals tell you <em>what happened</em>. Geval tells you <em>whether you can ship.</em>
 </p>
 
 <p align="center">
@@ -16,7 +20,7 @@
 
 ---
 
-## Install & try (under a minute)
+## Try it in under a minute
 
 **1. Download the binary** for your OS (no repo clone needed):
 
@@ -27,31 +31,28 @@ curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-lin
 # macOS (Apple Silicon)
 curl -sSL https://github.com/geval-labs/geval/releases/latest/download/geval-macos-aarch64 -o geval && chmod +x geval
 
-# Windows (PowerShell)
+# Windows (PowerShell) — see note below
 Invoke-WebRequest -Uri https://github.com/geval-labs/geval/releases/latest/download/geval-windows-x86_64.exe -OutFile geval.exe
 ```
+
+> **Windows:** Run **PowerShell as Administrator** before downloading and running Geval. Right‑click PowerShell → *Run as administrator*, then run the download command and `.\geval.exe demo`. This avoids execution policy and path issues so the demo and CLI work correctly.
 
 **2. Run the built-in demo** (no files needed):
 
 ```bash
-./geval demo
+./geval demo          # Linux / macOS
+.\geval.exe demo      # Windows (in the folder where you saved geval.exe)
 ```
 
-You’ll see a decision report and get **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. Same binary works in CI — no npm or pip. [→ Use in CI](geval/docs/github-actions.md)
+You’ll get a step-by-step decision report and an outcome: **PASS**, **REQUIRE_APPROVAL**, or **BLOCK**. Same binary works in CI — no npm, no pip. [Use in CI →](geval/docs/github-actions.md)
 
-**Using your own files** (e.g. after cloning the repo for examples):
+**Using your own files?**
 
 ```bash
 ./geval check --signals path/to/signals.json --policy path/to/policy.yaml --env prod
 ```
 
-**If the download fails** (e.g. no binaries for your OS yet), **build from source** (requires [Rust](https://rustup.rs/)):
-
-```bash
-git clone https://github.com/geval-labs/geval.git && cd geval
-cargo build --release --manifest-path geval/Cargo.toml
-./geval/target/release/geval demo
-```
+**Download failed or no binary for your OS?** [Build from source](geval/docs/installation.md#build-from-source) (requires [Rust](https://rustup.rs/)).
 
 ---
 
@@ -66,11 +67,11 @@ cargo build --release --manifest-path geval/Cargo.toml
 
 ## The problem
 
-Your team runs **evals** (evaluations that measure AI quality — accuracy, relevance, safety, hallucinations, latency). You also have A/B tests, human review, and business metrics. When you change a model or a prompt, you get a flood of signals:
+Your team runs **evals** (accuracy, relevance, safety, hallucinations, latency) plus A/B tests, human review, and business metrics. When you change a model or a prompt, you get a flood of signals:
 
-- **Evals** say: “Accuracy improved.”
-- **A/B** says: “Engagement dropped a bit.”
-- **Review** says: “Edge case flagged.”
+- **Evals:** “Accuracy improved.”
+- **A/B:** “Engagement dropped a bit.”
+- **Review:** “Edge case flagged.”
 
 So: **do you ship or not?** Today that call often happens in Slack or a meeting — inconsistent, hard to audit, and easy to forget. Geval gives you **one place to write the rules** and **one clear answer** every time: **ship**, **get approval first**, or **block**.
 
@@ -88,7 +89,7 @@ So: **do you ship or not?** Today that call often happens in Slack or a meeting 
 
 Every run is recorded (which policy and signals were used, which rule fired, when). So product managers, engineers, and auditors can always answer: *“Why did we ship this?”* and *“Who approved it?”*
 
-**In short:** evals and other tools answer *“What happened?”* Geval answers *“Given what happened, are we allowed to ship?”*
+**In short:** evals answer *“What happened?”* Geval answers *“Given what happened, are we allowed to ship?”*
 
 ---
 
@@ -118,7 +119,7 @@ Every run is recorded (which policy and signals were used, which rule fired, whe
 
 ## Contributing
 
-We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md). **Building from source** (e.g. to contribute): see [Installation → Build from source](geval/docs/installation.md#build-from-source).
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md). To build from source, see [Installation → Build from source](geval/docs/installation.md#build-from-source).
 
 ---
 
