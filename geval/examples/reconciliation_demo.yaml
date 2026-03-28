@@ -1,0 +1,5 @@
+# Reconciliation demo: multiple rules match, best priority wins.
+name: reconciliation-demo
+version: "1.0.0"
+policies:
+  - path: reconciliation_policy.yaml

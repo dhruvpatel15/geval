@@ -1,0 +1,22 @@
+name: edge-case-policy
+version: "1.0.0"
+policy:
+  rules:
+    - priority: 1
+      name: presence_check
+      when:
+        metric: metadata_exists
+        operator: presence
+      then:
+        action: require_approval
+        reason: "Metadata flag is present"
+
+    - priority: 2
+      name: score_threshold
+      when:
+        metric: quality_score
+        operator: "<"
+        threshold: 0.5
+      then:
+        action: block
+        reason: "Score too low"

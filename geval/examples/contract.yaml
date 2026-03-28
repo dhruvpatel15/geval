@@ -1,8 +1,8 @@
-# Example contract: one policy for simple demo.
-# For multiple policies, add e.g. policies/security.yaml and policies/quality.yaml and list them here.
-
-name: demo
-version: "1.0.0"
-combine: worst_case
+# Multi-policy contract demonstration.
+# This contract pulls in both quality and safety rules.
+name: multi-policy-demo
+version: "1.1.0"
+combine: all_pass
 policies:
-  - path: policy.yaml
+  - path: policies/quality.yaml
+  - path: policies/safety.yaml

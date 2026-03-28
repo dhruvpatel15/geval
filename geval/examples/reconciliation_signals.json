@@ -1,0 +1,9 @@
+{
+  "name": "reconciliation-signals",
+  "version": "1.0.0",
+  "signals": [
+    { "metric": "toxicity_score", "value": 0.9 },
+    { "metric": "hallucination_rate", "value": 0.07 },
+    { "metric": "manual_override" }
+  ]
+}

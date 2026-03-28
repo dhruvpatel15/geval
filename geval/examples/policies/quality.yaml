@@ -1,0 +1,25 @@
+name: quality-policy
+version: "1.0.0"
+policy:
+  rules:
+    - priority: 1
+      name: hallucination_guard
+      when:
+        component: generator
+        metric: hallucination_rate
+        operator: ">"
+        threshold: 0.1
+      then:
+        action: block
+        reason: "Hallucination rate too high"
+
+    - priority: 2
+      name: relevance_check
+      when:
+        component: retrieval
+        metric: context_relevance
+        operator: "<"
+        threshold: 0.8
+      then:
+        action: require_approval
+        reason: "Context relevance is low"

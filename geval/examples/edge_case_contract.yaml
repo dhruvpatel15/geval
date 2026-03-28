@@ -1,0 +1,5 @@
+# Edge cases: testing presence-only rules, first-win behavior, and resilience.
+name: edge-case-demo
+version: "1.0.0"
+policies:
+  - path: edge_case_policy.yaml

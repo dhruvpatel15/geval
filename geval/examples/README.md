@@ -1,54 +1,52 @@
 # Geval Examples
 
-Example contract, policies, and signals for Geval (decision orchestration and reconciliation).
+Example contracts, policies, and signals for Geval (decision orchestration and reconciliation).
 
 ## Files
 
-- **contract.yaml** – Contract: name, version, combine rule, and list of policy paths. This example references a single policy.
-- **contract-b.yaml** – Second contract (distinct `name`), same `policy.yaml` — used to demo **multiple contracts** on one PR.
-- **policy.yaml** – One policy with priority-ordered rules: business block, hallucination guard, retrieval quality.
-- **signals.json** – Example signals (eval metrics, A/B metrics, component-level).
+- **contract.yaml** – Multi-policy demonstration: merges rules from `policies/quality.yaml` and `policies/safety.yaml`.
+- **reconciliation_demo.yaml** – Demonstration of priority-based reconciliation (best priority wins).
+- **edge_case_contract.yaml** – Testing presence-based rules and first-win signal logic.
+- **policy.yaml** – Legacy single-policy example.
+- **signals.json** – Standard demo signals for numeric metrics.
+- **reconciliation_signals.json** – Overlapping signals to trigger competing rules.
+- **edge_cases.json** – Mixed types (strings, objects), presence-only, and out-of-order signals.
 
-## Run (from repo root)
+## Interactive Runner (Windows)
 
-```bash
-cargo build --release --manifest-path geval/Cargo.toml
+The simplest way to see Geval in action is to run the PowerShell script:
 
-# Check: evaluate signals against contract (exit 0=PASS, 1=REQUIRE_APPROVAL, 2=BLOCK)
-./geval/target/release/geval check --contract geval/examples/contract.yaml --signals geval/examples/signals.json --env prod
-
-# Multiple contracts (same signals): repeat --contract / -c
-./geval/target/release/geval check \
-  --contract geval/examples/contract.yaml \
-  --contract geval/examples/contract-b.yaml \
-  --signals geval/examples/signals.json --env prod
-
-# Explain: human-readable report (per-policy + combined)
-./geval/target/release/geval explain --contract geval/examples/contract.yaml --signals geval/examples/signals.json --env prod
-
-# Validate one or more contract files
-./geval/target/release/geval validate-contract geval/examples/contract.yaml
-./geval/target/release/geval validate-contract geval/examples/contract.yaml geval/examples/contract-b.yaml
+```powershell
+./examples/run_examples.ps1
 ```
 
-With the example data, the policy matches `business_block`: `engagement_drop` 0.03 > 0, so the decision is **BLOCK**.
+This will execute several scenarios (Multi-policy, Reconciliation, and Edge cases) and show both the decision outcome and the detailed explanation for each.
 
-## Contract format
+## Manual Run (from repo root)
 
-- **name**, **version** – Identify the contract for audit; bump version when you change policies or combine rule.
-- **combine** – How to merge outcomes from multiple policies:
-  - **worst_case** – Any BLOCK wins; else any REQUIRE_APPROVAL; else PASS.
-- **policies** – List of policy file paths (relative to the contract file): e.g. `policy.yaml` or `policies/security.yaml`.
+```bash
+# Ensure the binary is built
+cargo build --release --manifest-path geval/Cargo.toml
 
-## Policy format
+# 1. Multi-policy evaluation
+./geval/target/release/geval check --contract geval/examples/contract.yaml --signals geval/examples/signals.json
 
-Each policy file has optional **name** and **version**, and **policy** with:
+# 2. Reconciliation (Priority-based winner)
+./geval/target/release/geval explain --contract geval/examples/reconciliation_demo.yaml --signals geval/examples/reconciliation_signals.json
 
-- **environment** – optional.
-- **rules** – unique **priority** (**1** = highest), name, when (metric, component, operator, threshold), then (action, reason).
+# 3. Edge cases (Presence-only detection)
+./geval/target/release/geval explain --contract geval/examples/edge_case_contract.yaml --signals geval/examples/edge_cases.json
+```
 
-Every rule is evaluated; all matches are recorded; the **best** (lowest) priority wins; no match → PASS.
+## Concepts Demonstrated
 
-## Signals format
+### Multi-Policy Combinations
+Contracts can reference multiple files. Using `combine: all_pass` (default), if any policy blocks, the entire contract blocks.
 
-JSON with optional **name** and **version** at the top, and **signals**: array of objects with optional `system`, `agent`, `component`, `step`, `metric`, `value`, `type`.
+### Reconciliation
+When multiple rules within a policy match the input signals, Geval reconciles them by picking the one with the **lowest priority number** (1 = highest). See `reconciliation_demo.yaml` for a "Manual Override" example.
+
+### Signal Handling
+- **Presence-only**: Rules with `operator: presence` match even if the signal has no numeric value (e.g. `manual_override: {}`).
+- **First-win**: If the same metric appears multiple times, the first one encountered in the signals file is used for threshold comparisons.
+- **Resilience**: Non-numeric signals (strings, objects) are ignored for threshold rules but preserved for audit and reporting.

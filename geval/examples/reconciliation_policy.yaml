@@ -1,0 +1,32 @@
+name: reconciliation-policy
+version: "1.0.0"
+policy:
+  rules:
+    - priority: 1
+      name: critical_override
+      when:
+        metric: manual_override
+        operator: presence
+      then:
+        action: pass
+        reason: "Manual override: passing despite other signals"
+
+    - priority: 2
+      name: safety_block
+      when:
+        metric: toxicity_score
+        operator: ">"
+        threshold: 0.8
+      then:
+        action: block
+        reason: "Critical toxicity detected"
+
+    - priority: 3
+      name: quality_warning
+      when:
+        metric: hallucination_rate
+        operator: ">"
+        threshold: 0.05
+      then:
+        action: require_approval
+        reason: "Slight hallucination detected"

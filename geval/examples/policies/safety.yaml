@@ -1,0 +1,22 @@
+name: safety-policy
+version: "1.0.0"
+policy:
+  rules:
+    - priority: 1
+      name: pii_filter
+      when:
+        metric: pii_detected
+        operator: presence
+      then:
+        action: block
+        reason: "PII detected in output"
+
+    - priority: 2
+      name: toxicity_guard
+      when:
+        metric: toxicity_score
+        operator: ">"
+        threshold: 0.5
+      then:
+        action: block
+        reason: "High toxicity score detected"

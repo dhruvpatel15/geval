@@ -1,0 +1,11 @@
+{
+  "name": "edge-case-signals",
+  "version": "1.0.0",
+  "signals": [
+    { "metric": "metadata_exists" },
+    { "metric": "quality_score", "value": 0.8 },
+    { "metric": "quality_score", "value": 0.3 },
+    { "metric": "non_numeric_metric", "value": "string-value" },
+    { "metric": "complex_object", "value": { "nested": "data" } }
+  ]
+}

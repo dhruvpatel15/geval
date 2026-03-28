@@ -31,3 +31,7 @@ logs/
 geval-doc*.txt
 *-eval-test-*.csv
 eval_result.csv
+geval/Practice_demo/
+geval/copilot_demo/
+geval/Practice_demo/
+geval/copilot_demo/
